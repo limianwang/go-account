@@ -1,26 +1,54 @@
 package acct
 
-type account struct {
-	balance float64
+import (
+	"strconv"
+)
+
+type Account struct {
+	ID  int
+	Bal float64
 }
 
-func (a *account) Balance() float64 {
-	return a.balance
+func (a *Account) Balance() float64 {
+	val, _ := strconv.ParseFloat(strconv.FormatFloat(a.Bal, 'f', 2, 64), 64)
+	return val
 }
 
-type transaction struct {
+type Transaction struct {
+	operations []Operation
 }
 
-func (t *transaction) MoveMoney(a float64, from *account, to *account) {
+type Operation struct {
+	amount  float64
+	fromAcc *Account
+	toAcc   *Account
 }
 
-func (t *transaction) Close() {
+func (t *Transaction) MoveMoney(p float64, fromAcc *Account, toAcc *Account) {
+	op := Operation{}
+	op.amount = p
+	op.fromAcc = fromAcc
+	op.toAcc = toAcc
+	t.operations = append(t.operations, op)
 }
 
-func NewAccount() *account {
-	return &account{}
+func (t *Transaction) Close() {
+	for _, opt := range t.operations {
+		if opt.amount == 0 {
+			continue
+		} else {
+			opt.fromAcc.Bal -= opt.amount
+			opt.toAcc.Bal += opt.amount
+		}
+	}
 }
 
-func NewTransaction() *transaction {
-	return &transaction{}
+func NewTransaction() *Transaction {
+	t := &Transaction{}
+	t.operations = make([]Operation, 5)
+	return t
+}
+
+func NewAccount() *Account {
+	return &Account{}
 }
