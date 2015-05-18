@@ -32,7 +32,7 @@ func (t *Transaction) MoveMoney(p float64, fromAcc *Account, toAcc *Account) {
 	t.operations = append(t.operations, op)
 }
 
-func (t *Transaction) Close() {
+func (t *Transaction) commit() error {
 	for _, opt := range t.operations {
 		if opt.amount == 0 {
 			continue
@@ -40,6 +40,17 @@ func (t *Transaction) Close() {
 			opt.fromAcc.Bal -= opt.amount
 			opt.toAcc.Bal += opt.amount
 		}
+	}
+	return nil
+}
+
+func (t *Transaction) rollback() error {
+	return nil
+}
+
+func (t *Transaction) Close() {
+	if err := t.commit(); err != nil {
+		t.rollback()
 	}
 }
 
