@@ -1,29 +1,32 @@
 package acct
 
-import (
-	"strconv"
-)
+import "strconv"
 
+// Account account object
 type Account struct {
 	ID  int
 	Bal float64
 }
 
+// Balance returns balance of the account
 func (a *Account) Balance() float64 {
 	val, _ := strconv.ParseFloat(strconv.FormatFloat(a.Bal, 'f', 2, 64), 64)
 	return val
 }
 
+// Transaction transaction object
 type Transaction struct {
 	operations []Operation
 }
 
+// Operation operation that will occur on a MoveMoney
 type Operation struct {
 	amount  float64
 	fromAcc *Account
 	toAcc   *Account
 }
 
+// MoveMoney prepares the money flowing from one to other
 func (t *Transaction) MoveMoney(p float64, fromAcc *Account, toAcc *Account) {
 	op := Operation{}
 	op.amount = p
@@ -48,18 +51,21 @@ func (t *Transaction) rollback() error {
 	return nil
 }
 
+// Close commits the operations
 func (t *Transaction) Close() {
 	if err := t.commit(); err != nil {
 		t.rollback()
 	}
 }
 
+// NewTransaction returns a new transaction
 func NewTransaction() *Transaction {
 	t := &Transaction{}
 	t.operations = make([]Operation, 5)
 	return t
 }
 
+// NewAccount returns a new account
 func NewAccount() *Account {
 	return &Account{}
 }
