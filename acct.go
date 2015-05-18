@@ -1,34 +1,38 @@
 package acct
 
-import "strconv"
+import (
+	"database/sql"
+
+	// Import
+	_ "github.com/go-sql-driver/mysql"
+)
 
 // Account account object
 type Account struct {
-	ID  int
+	db  *sql.DB
+	ID  int64
 	Bal float64
 }
 
 // Balance returns balance of the account
 func (a *Account) Balance() float64 {
-	val, _ := strconv.ParseFloat(strconv.FormatFloat(a.Bal, 'f', 2, 64), 64)
-	return val
+	err := a.db.QueryRow("SELECT balance FROM account WHERE id = ?", a.ID).Scan(&a.Bal)
+	if err != nil {
+		panic(err)
+	}
+	return a.Bal
+
 }
 
 // Transaction transaction object
 type Transaction struct {
-	operations []Operation
-}
-
-// Operation operation that will occur on a MoveMoney
-type Operation struct {
-	amount  float64
-	fromAcc *Account
-	toAcc   *Account
+	db *sql.DB
+	tx *sql.Tx
 }
 
 // Begin initiates txn
 func (t *Transaction) Begin() {
-	t.operations = make([]Operation, 5)
+	t.tx, _ = t.db.Begin()
 }
 
 // MoveMoney prepares the money flowing from one to other
@@ -44,37 +48,38 @@ func (t *Transaction) Close() {
 }
 
 func (t *Transaction) prepare(p float64, fromAcc *Account, toAcc *Account) {
-	op := Operation{}
-	op.amount = p
-	op.fromAcc = fromAcc
-	op.toAcc = toAcc
-	t.operations = append(t.operations, op)
+	t.tx.Exec("UPDATE account SET balance = balance - ? WHERE id = ?", p, fromAcc.ID)
+	t.tx.Exec("UPDATE account SET balance = balance + ? WHERE id = ?", p, toAcc.ID)
 }
 
 func (t *Transaction) commit() error {
-	for _, opt := range t.operations {
-		if opt.amount == 0 {
-			continue
-		} else {
-			opt.fromAcc.Bal -= opt.amount
-			opt.toAcc.Bal += opt.amount
-		}
+	if err := t.tx.Commit(); err != nil {
+		return t.rollback()
 	}
+
 	return nil
 }
 
 func (t *Transaction) rollback() error {
-	return nil
+	return t.tx.Rollback()
 }
 
 // NewTransaction returns a new transaction
 func NewTransaction() *Transaction {
 	t := &Transaction{}
+	t.db, _ = sql.Open("mysql", "root@tcp(localhost:3306)/golang")
 	t.Begin()
 	return t
 }
 
 // NewAccount returns a new account
 func NewAccount() *Account {
-	return &Account{}
+	a := &Account{}
+	a.db, _ = sql.Open("mysql", "root@tcp(localhost:3306)/golang")
+	result, _ := a.db.Exec("INSERT INTO account SET balance = ? ", 0)
+	id, _ := result.LastInsertId()
+
+	a.ID = id
+
+	return a
 }
