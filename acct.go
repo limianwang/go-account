@@ -26,6 +26,11 @@ type Operation struct {
 	toAcc   *Account
 }
 
+// Begin initiates txn
+func (t *Transaction) Begin() {
+	t.operations = make([]Operation, 5)
+}
+
 // MoveMoney prepares the money flowing from one to other
 func (t *Transaction) MoveMoney(p float64, fromAcc *Account, toAcc *Account) {
 	t.prepare(p, fromAcc, toAcc)
@@ -65,7 +70,7 @@ func (t *Transaction) rollback() error {
 // NewTransaction returns a new transaction
 func NewTransaction() *Transaction {
 	t := &Transaction{}
-	t.operations = make([]Operation, 5)
+	t.Begin()
 	return t
 }
 
