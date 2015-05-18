@@ -28,6 +28,17 @@ type Operation struct {
 
 // MoveMoney prepares the money flowing from one to other
 func (t *Transaction) MoveMoney(p float64, fromAcc *Account, toAcc *Account) {
+	t.prepare(p, fromAcc, toAcc)
+}
+
+// Close commits the operations
+func (t *Transaction) Close() {
+	if err := t.commit(); err != nil {
+		t.rollback()
+	}
+}
+
+func (t *Transaction) prepare(p float64, fromAcc *Account, toAcc *Account) {
 	op := Operation{}
 	op.amount = p
 	op.fromAcc = fromAcc
@@ -49,13 +60,6 @@ func (t *Transaction) commit() error {
 
 func (t *Transaction) rollback() error {
 	return nil
-}
-
-// Close commits the operations
-func (t *Transaction) Close() {
-	if err := t.commit(); err != nil {
-		t.rollback()
-	}
 }
 
 // NewTransaction returns a new transaction
